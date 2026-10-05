@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rock Band & Song Era Quiz</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  @keyframes rock { 0%,100%{transform:rotate(-2deg)} 50%{transform:rotate(2deg)} }
+  .rock-anim { animation: rock 0.5s ease-in-out; }
+  .choice-btn { transition: all 0.15s; }
+  .choice-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+</style>
+</head>
+<body class="bg-gray-900 min-h-screen">
+<div class="max-w-3xl mx-auto px-4 py-8">
+
+  <!-- Start Screen -->
+  <div id="start-screen">
+    <div class="text-center mb-8">
+      <div id="logo" class="text-6xl mb-3">🎸</div>
+      <h1 class="text-4xl font-black text-white mb-2">Rock Era Quiz</h1>
+      <p class="text-gray-400">Test your rock music knowledge across decades.</p>
+    </div>
+
+    <div class="bg-gray-800 rounded-2xl p-6 mb-4">
+      <div class="grid sm:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Difficulty</label>
+          <select id="difficulty" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none">
+            <option value="easy">Easy (4 choices)</option>
+            <option value="medium" selected>Medium (4 close choices)</option>
+            <option value="hard">Hard (mixed types)</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Era Filter</label>
+          <select id="era-filter" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none">
+            <option value="all">All Eras</option>
+            <option value="50s60s">50s & 60s</option>
+            <option value="70s">70s Classic Rock</option>
+            <option value="80s">80s Rock</option>
+            <option value="90s">90s Rock/Grunge</option>
+            <option value="00s">2000s Rock</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">Questions</label>
+          <select id="q-count" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-3 py-2 text-sm focus:outline-none">
+            <option value="10">10 questions</option>
+            <option value="15" selected>15 questions</option>
+            <option value="20">20 questions</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- High Scores -->
+    <div class="bg-gray-800 rounded-2xl p-5 mb-6">
+      <h2 class="text-sm font-semibold text-gray-300 mb-3">🏆 High Scores</h2>
+      <div id="high-scores" class="text-sm"></div>
+    </div>
+
+    <button onclick="startQuiz()" class="w-full bg-red-600 hover:bg-red-500 text-white py-4 rounded-2xl text-xl font-black transition-colors tracking-wide">
+      🎸 START QUIZ
+    </button>
+  </div>
+
+  <!-- Quiz Screen -->
+  <div id="quiz-screen" class="hidden">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex gap-4 text-sm">
+        <span class="text-gray-400">Q <span id="q-num" class="text-white font-bold">1</span>/<span id="q-total" class="text-white font-bold">15</span></span>
+        <span class="text-green-400">✓ <span id="correct-ct">0</span></span>
+        <span class="text-red-400">✗ <span id="wrong-ct">0</span></span>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-orange-400 text-sm">🔥 <span id="streak-ct">0</span></span>
+        <span class="text-yellow-400 font-bold" id="score-display">0 pts</span>
+      </div>
+    </div>
+    <div class="w-full bg-gray-800 rounded-full h-1.5 mb-6">
+      <div id="q-progress" class="h-1.5 rounded-full bg-red-600 transition-all duration-300" style="width:0%"></div>
+    </div>
+
+    <!-- Question Card -->
+    <div class="bg-gray-800 rounded-2xl p-6 mb-4 shadow-2xl">
+      <div class="flex items-center gap-2 mb-3">
+        <span id="q-type-badge" class="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded-full"></span>
+        <span id="q-era-badge" class="text-xs bg-red-900 text-red-200 px-2 py-1 rounded-full"></span>
+      </div>
+      <div id="question-text" class="text-white text-lg font-medium leading-relaxed mb-1"></div>
+      <div id="question-hint" class="text-gray-400 text-sm italic mb-2"></div>
+    </div>
+
+    <!-- Choices -->
+    <div id="choices-grid" class="grid grid-cols-2 gap-3 mb-4"></div>
+    <div id="q-feedback" class="min-h-12 text-center text-sm font-medium"></div>
+  </div>
+
+  <!-- Results Screen -->
+  <div id="results-screen" class="hidden">
+    <div class="text-center mb-6">
+      <div id="result-emoji" class="text-6xl mb-3">🎸</div>
+      <h2 class="text-3xl font-black text-white mb-2">Quiz Complete!</h2>
+      <div id="final-score" class="text-5xl font-black text-red-400 mb-2"></div>
+      <p id="result-desc" class="text-gray-300 mb-1"></p>
+      <p id="best-streak-txt" class="text-orange-400 text-sm"></p>
+    </div>
+
+    <div class="bg-gray-800 rounded-2xl p-5 mb-4">
+      <h3 class="font-semibold text-gray-200 mb-3">Question Review</h3>
+      <div id="review-list" class="grid gap-2 max-h-64 overflow-y-auto"></div>
+    </div>
+
+    <div class="flex gap-3">
+      <button onclick="startQuiz()" class="flex-1 bg-red-600 hover:bg-red-500 text-white py-3 rounded-xl font-bold transition-colors">Play Again</button>
+      <button onclick="showStart()" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-xl font-medium transition-colors">Settings</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const QUESTIONS = [
+  // 50s60s
+  {era:'50s60s',type:'band',q:'Which band released "Roll Over Beethoven" in 1956?',a:'Chuck Berry',choices:['Chuck Berry','Little Richard','Elvis Presley','Buddy Holly'],fact:'Classic rock and roll anthem from Chuck Berry.'},
+  {era:'50s60s',type:'album',q:'The Beatles released "Sgt. Pepper\'s Lonely Hearts Club Band" in which year?',a:'1967',choices:['1965','1966','1967','1968'],fact:'One of the most influential albums of all time.'},
+  {era:'50s60s',type:'lyric',q:'Which band sang: "She loves you, yeah yeah yeah"?',a:'The Beatles',choices:['The Beatles','The Rolling Stones','The Kinks','The Who'],fact:'"She Loves You" by The Beatles (1963) sold over 1.9 million copies.'},
+  {era:'50s60s',type:'band',q:'Who was the lead vocalist of The Doors?',a:'Jim Morrison',choices:['Jim Morrison','Roger Daltrey','Eric Clapton','Jeff Beck'],fact:'Jim Morrison was known as "The Lizard King."'},
+  {era:'50s60s',type:'album',q:'"Are You Experienced" was the debut album of which artist?',a:'Jimi Hendrix',choices:['Jimi Hendrix','Cream','The Who','Janis Joplin'],fact:'Released in 1967, often cited as one of the greatest debut albums.'},
+  // 70s
+  {era:'70s',type:'band',q:'Which band released "Stairway to Heaven" in 1971?',a:'Led Zeppelin',choices:['Led Zeppelin','Deep Purple','Black Sabbath','Cream'],fact:'From the album "Led Zeppelin IV," widely considered the greatest rock song ever.'},
+  {era:'70s',type:'lyric',q:'Which band sang: "Bohemian Rhapsody" — a groundbreaking 1975 rock opera?',a:'Queen',choices:['Queen','Aerosmith','KISS','ELO'],fact:'Queen\'s "Bohemian Rhapsody" has no chorus and is nearly 6 minutes long.'},
+  {era:'70s',type:'album',q:'"Dark Side of the Moon" is by which band?',a:'Pink Floyd',choices:['Pink Floyd','Genesis','Yes','Supertramp'],fact:'Released 1973 — one of the best-selling albums ever, 45 weeks at #1.'},
+  {era:'70s',type:'band',q:'Who sang "Hotel California" on their 1976 album of the same name?',a:'Eagles',choices:['Eagles','Fleetwood Mac','Steely Dan','Boston'],fact:'One of the best-selling singles of all time.'},
+  {era:'70s',type:'lyric',q:'Which band performed "Smoke on the Water," inspired by a casino fire in Montreux?',a:'Deep Purple',choices:['Deep Purple','Black Sabbath','Uriah Heep','Judas Priest'],fact:'"Smoke on the Water" features one of the most recognizable guitar riffs.'},
+  {era:'70s',type:'album',q:'"Rumours" (1977) is a classic album by which band?',a:'Fleetwood Mac',choices:['Fleetwood Mac','ABBA','Blondie','Heart'],fact:'"Rumours" won the 1978 Grammy for Album of the Year.'},
+  // 80s
+  {era:'80s',type:'band',q:'Which band released "Back in Black" in 1980, one of the best-selling albums ever?',a:'AC/DC',choices:['AC/DC','Metallica','Judas Priest','Iron Maiden'],fact:'"Back in Black" has sold over 50 million copies worldwide.'},
+  {era:'80s',type:'lyric',q:'Which band sang: "I want to break free" in 1984?',a:'Queen',choices:['Queen','Duran Duran','The Cars','Simple Minds'],fact:'The music video featured band members in drag, causing controversy in the US.'},
+  {era:'80s',type:'album',q:'"The Joshua Tree" (1987) is by which band?',a:'U2',choices:['U2','R.E.M.','The Cure','Echo & the Bunnymen'],fact:'Won the Grammy for Album of the Year in 1988.'},
+  {era:'80s',type:'band',q:'Which band had hits including "Jump," "Panama," and "Hot for Teacher"?',a:'Van Halen',choices:['Van Halen','Bon Jovi','Def Leppard','Whitesnake'],fact:'Eddie Van Halen\'s guitar technique revolutionized rock.'},
+  {era:'80s',type:'lyric',q:'Which band sang: "Pour Some Sugar on Me" in 1987?',a:'Def Leppard',choices:['Def Leppard','Guns N\' Roses','Poison','Warrant'],fact:'From the album "Hysteria," recorded with drummer Rick Allen using only one arm.'},
+  {era:'80s',type:'album',q:'"Appetite for Destruction" (1987) is by which band?',a:"Guns N' Roses",choices:["Guns N' Roses","Motley Crue","Skid Row","Alice Cooper"],fact:'The best-selling debut album ever with over 30 million copies sold.'},
+  // 90s
+  {era:'90s',type:'band',q:'Which band released "Nevermind" in 1991, igniting the grunge movement?',a:'Nirvana',choices:['Nirvana','Pearl Jam','Soundgarden','Alice in Chains'],fact:'"Smells Like Teen Spirit" became the anthem of Generation X.'},
+  {era:'90s',type:'lyric',q:'Which band sang: "Even Flow" and "Alive" from their debut album "Ten"?',a:'Pearl Jam',choices:['Pearl Jam','Stone Temple Pilots','Soundgarden','Mudhoney'],fact:'"Ten" (1991) is one of the best-selling grunge albums of all time.'},
+  {era:'90s',type:'album',q:'"OK Computer" (1997) — considered one of the greatest albums ever — is by which band?',a:'Radiohead',choices:['Radiohead','Blur','Oasis','Pulp'],fact:'Nominated for the Mercury Prize and widely cited as the best album of the 1990s.'},
+  {era:'90s',type:'band',q:'Who sang "Losing My Religion" in 1991?',a:'R.E.M.',choices:['R.E.M.','The Smiths','The Cure','10,000 Maniacs'],fact:'"Losing My Religion" reached #4 on the Billboard Hot 100.'},
+  {era:'90s',type:'lyric',q:'Which band sang: "I Stay Away" and "Would?" from the "Singles" soundtrack?',a:'Alice in Chains',choices:['Alice in Chains','Soundgarden','Bush','Live'],fact:'Alice in Chains blended heavy metal and grunge throughout the early 90s.'},
+  {era:'90s',type:'album',q:'"(What\'s the Story) Morning Glory?" (1995) is by which British band?',a:'Oasis',choices:['Oasis','Blur','Suede','Pulp'],fact:'The second best-selling UK album ever, with hits "Wonderwall" and "Champagne Supernova."'},
+  // 00s
+  {era:'00s',type:'band',q:'Which band released "21st Century Breakdown" and "American Idiot"?',a:'Green Day',choices:['Green Day','My Chemical Romance','Fall Out Boy','The Offspring'],fact:'"American Idiot" (2004) is a rock opera about life in modern America.'},
+  {era:'00s',type:'lyric',q:'Which band sang: "In the End" in 2000, from their debut album?',a:'Linkin Park',choices:['Linkin Park','System of a Down','Korn','Limp Bizkit'],fact:'"In the End" is one of the most-viewed rock music videos on YouTube.'},
+  {era:'00s',type:'album',q:'"Is This It" (2001) — debut album that defined indie rock — is by which band?',a:'The Strokes',choices:['The Strokes','The White Stripes','Arctic Monkeys','Interpol'],fact:'Often cited as the album that launched the garage rock revival.'},
+  {era:'00s',type:'band',q:'Which band released "Seven Nation Army" in 2003 — just guitar, drums, and no bass?',a:'The White Stripes',choices:['The White Stripes','The Black Keys','Jack Johnson','Beck'],fact:'"Seven Nation Army" became one of the most recognizable guitar riffs of the 2000s.'},
+  {era:'00s',type:'album',q:'"Whatever People Say I Am, That\'s What I\'m Not" (2006) — fastest-selling UK debut — is by?',a:'Arctic Monkeys',choices:['Arctic Monkeys','Kasabian','The Libertines','Franz Ferdinand'],fact:'Arctic Monkeys leveraged early internet file-sharing to build their fanbase.'},
+  {era:'00s',type:'lyric',q:'Which band sang: "Mr. Brightside" in 2003, one of the most-played songs in UK chart history?',a:'The Killers',choices:['The Killers','Interpol','Editors','Bloc Party'],fact:'"Mr. Brightside" has spent over 350 weeks on the UK Singles Chart.'},
+];
+
+function shuffle(arr){return [...arr].sort(()=>Math.random()-0.5);}
+
+let quiz={};
+let highScores=JSON.parse(localStorage.getItem('rock_scores')||'[]');
+
+function getFiltered(){
+  const era=document.getElementById('era-filter').value;
+  return QUESTIONS.filter(q=>era==='all'||q.era===era);
+}
+
+function startQuiz(){
+  const pool=getFiltered();
+  if(pool.length<4){alert('Not enough questions for this filter. Try "All Eras."');return;}
+  const count=parseInt(document.getElementById('q-count').value)||15;
+  const diff=document.getElementById('difficulty').value;
+  const questions=shuffle(pool).slice(0,Math.min(count,pool.length));
+  quiz={questions,current:0,correct:0,wrong:0,streak:0,bestStreak:0,score:0,diff,history:[]};
+  document.getElementById('q-total').textContent=questions.length;
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('results-screen').classList.add('hidden');
+  document.getElementById('quiz-screen').classList.remove('hidden');
+  showQuestion();
+}
+
+function showQuestion(){
+  const q=quiz.questions[quiz.current];
+  document.getElementById('q-num').textContent=quiz.current+1;
+  document.getElementById('q-progress').style.width=((quiz.current/quiz.questions.length)*100)+'%';
+  document.getElementById('correct-ct').textContent=quiz.correct;
+  document.getElementById('wrong-ct').textContent=quiz.wrong;
+  document.getElementById('streak-ct').textContent=quiz.streak;
+  document.getElementById('score-display').textContent=quiz.score+' pts';
+  document.getElementById('q-feedback').textContent='';
+
+  const typeLabels={band:'🎸 Band/Artist',lyric:'🎵 Lyric/Song',album:'💿 Album'};
+  const eraLabels={
+    '50s60s':'50s–60s','70s':'70s Classic','80s':'80s Rock','90s':'90s/Grunge','00s':'2000s'
+  };
+  document.getElementById('q-type-badge').textContent=typeLabels[q.type]||q.type;
+  document.getElementById('q-era-badge').textContent=eraLabels[q.era]||q.era;
+  document.getElementById('question-text').textContent=q.q;
+  document.getElementById('question-hint').textContent=q.type==='lyric'?'(Identify the band/artist)':'';
+
+  // Build choices
+  let choices=[...q.choices];
+  if(quiz.diff==='easy') choices=shuffle(choices).slice(0,4);
+  else choices=shuffle(choices);
+  if(!choices.includes(q.a)) choices[0]=q.a, choices=shuffle(choices);
+
+  document.getElementById('choices-grid').innerHTML=choices.map(c=>`
+    <button class="choice-btn bg-gray-700 hover:bg-gray-600 border border-gray-600 text-white py-3 px-4 rounded-xl text-sm font-medium text-left focus:outline-none focus:ring-2 focus:ring-red-500"
+      onclick="checkAnswer(this,'${c.replace(/'/g,"&#39;")}')" aria-label="Answer: ${c}">${c}</button>`
+  ).join('');
+}
+
+function checkAnswer(btn, choice){
+  const q=quiz.questions[quiz.current];
+  const correct=choice===q.a;
+  const btns=document.querySelectorAll('#choices-grid button');
+  btns.forEach(b=>{
+    b.disabled=true;
+    if(b.textContent.trim()===q.a){b.style.background='#166534';b.style.borderColor='#22c55e';}
+    if(b===btn&&!correct){b.style.background='#7f1d1d';b.style.borderColor='#ef4444';}
+  });
+  const pts=correct?(quiz.diff==='hard'?150:quiz.diff==='medium'?100:75)*(1+quiz.streak*0.1)|0:0;
+  if(correct){
+    quiz.correct++;quiz.streak++;quiz.score+=pts;
+    quiz.bestStreak=Math.max(quiz.bestStreak,quiz.streak);
+    document.getElementById('q-feedback').innerHTML=`<span class="text-green-400 text-base">✓ Correct! +${pts} pts</span><br><span class="text-gray-400 text-xs">${q.fact||''}</span>`;
+  } else {
+    quiz.wrong++;quiz.streak=0;
+    document.getElementById('q-feedback').innerHTML=`<span class="text-red-400 text-base">✗ Answer: <strong>${q.a}</strong></span><br><span class="text-gray-400 text-xs">${q.fact||''}</span>`;
+  }
+  quiz.history.push({q:q.q,a:q.a,chosen:choice,correct});
+  setTimeout(()=>{quiz.current++;if(quiz.current<quiz.questions.length)showQuestion();else showResults();},1600);
+}
+
+function showResults(){
+  document.getElementById('quiz-screen').classList.add('hidden');
+  document.getElementById('results-screen').classList.remove('hidden');
+  const pct=Math.round(quiz.correct/quiz.questions.length*100);
+  const emojis=['😅','🤘','🎸','⭐','🏆'];
+  const ei=Math.floor(pct/25);
+  document.getElementById('result-emoji').textContent=emojis[Math.min(4,ei)];
+  document.getElementById('final-score').textContent=quiz.score+' pts';
+  document.getElementById('result-desc').textContent=`${quiz.correct}/${quiz.questions.length} correct (${pct}%)`;
+  document.getElementById('best-streak-txt').textContent=`Best streak: ${quiz.bestStreak} 🔥`;
+
+  // Save high score
+  highScores.push({score:quiz.score,correct:quiz.correct,total:quiz.questions.length,date:new Date().toLocaleDateString()});
+  highScores.sort((a,b)=>b.score-a.score);
+  highScores=highScores.slice(0,5);
+  try{localStorage.setItem('rock_scores',JSON.stringify(highScores));}catch(e){}
+
+  // Review
+  document.getElementById('review-list').innerHTML=quiz.history.map((h,i)=>`
+    <div class="flex items-start gap-2 text-xs p-2 rounded ${h.correct?'bg-green-900 bg-opacity-30':'bg-red-900 bg-opacity-30'}">
+      <span class="${h.correct?'text-green-400':'text-red-400'} flex-shrink-0">${h.correct?'✓':'✗'}</span>
+      <div class="flex-1 min-w-0">
+        <div class="text-gray-300 truncate">${h.q}</div>
+        ${!h.correct?`<div class="text-gray-500">Your answer: ${h.chosen} → <span class="text-green-400">${h.a}</span></div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function renderHighScores(){
+  const el=document.getElementById('high-scores');
+  if(!highScores.length){el.innerHTML='<p class="text-gray-500 text-sm">No scores yet. Play to set a record!</p>';return;}
+  el.innerHTML=`<div class="grid gap-1">${highScores.map((s,i)=>`
+    <div class="flex items-center gap-2 text-sm">
+      <span class="text-gray-500 w-4">${i+1}.</span>
+      <span class="font-bold text-yellow-400">${s.score}</span>
+      <span class="text-gray-400">pts · ${s.correct}/${s.total} correct · ${s.date}</span>
+    </div>`).join('')}</div>`;
+}
+
+function showStart(){
+  document.getElementById('results-screen').classList.add('hidden');
+  document.getElementById('start-screen').classList.remove('hidden');
+  renderHighScores();
+}
+
+window.addEventListener('load',renderHighScores);
+</script>
+</body>
+</html>
